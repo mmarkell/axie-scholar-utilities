@@ -166,7 +166,6 @@ class AxiePaymentsManager:
 
     def verify_inputs(self):
         logging.info("Validating file inputs...")
-        validation_success = True
         # Validate payments file
         amount_msg = None
         percent_msg = None
@@ -174,65 +173,59 @@ class AxiePaymentsManager:
             validate(self.payments_file, payments_schema)
             self.type = "amount"
         except ValidationError as ex:
-            amount_msg = ("If you were tyring to pay using amounts:\n"
+            amount_msg = ("If you were trying to pay using amounts:\n"
                           f"Error given: {ex.message}\n"
                           f"For attribute in: {list(ex.path)}\n")
-            validation_success = False
+            print(amount_msg)
         if not self.type:
             try:
                 validate(self.payments_file, payments_percent_schema)
                 self.type = "percent"
-                validation_success = True
             except ValidationError as ex:
-                percent_msg = ("If you were tyring to pay using percents:\n"
+                percent_msg = ("If you were trying to pay using percents:\n"
                                f"Error given: {ex.message}\n"
                                f"For attribute in: {list(ex.path)}\n")
-                validation_success = False
-        if not validation_success:
-            msg = "Payments file failed validation. Please review it.\n"
-            if amount_msg:
-                msg += amount_msg
-            if percent_msg:
-                msg += percent_msg
-            logging.critical(msg)
+                print(percent_msg)
         if len(self.payments_file["Manager"].replace("ronin:", "0x")) != 42:
-            logging.critical(f"Check your manager ronin {self.payments_file['Manager']}, it has an incorrect format")
-            validation_success = False
+            err = f"Check your manager ronin {self.payments_file['Manager']}, it has an incorrect format"
+            logging.critical(err)
+            raise Exception(err)
         # check donations do not exceed 100%
         if self.payments_file.get("Donations") and self.type == "amount":
             total = sum([x["Percent"] for x in self.payments_file.get("Donations")])
             if total > 0.99:
-                logging.critical("Payments file donations exeeds 100%, please review it")
-                validation_success = False
+                err = "Payments file donations exeeds 100%, please review it"
+                logging.critical(err)
+                raise Exception(err)
             if any(len(dono['AccountAddress'].replace("ronin:", "0x")) != 42 for dono in self.payments_file["Donations"]):  # noqa
-                logging.critical("Please review the ronins in your donations. One or more are wrong!")
-                validation_success = False
+                err = "Please review the ronins in your donations. One or more are wrong!"
+                logging.critical(err)
+                raise Exception(err)
             self.donations = self.payments_file["Donations"]
         if self.payments_file.get("Donations") and self.type == "percent":
             total = sum([x["Percent"] for x in self.payments_file.get("Donations")])
             if total > 99:
-                logging.critical("Payments file donations exeeds 100%, please review it")
-                validation_success = False
+                err = "Payments file donations exeeds 100%, please review it"
+                logging.critical(err)
+                raise Exception(err)
             if any(len(dono['AccountAddress'].replace("ronin:", "0x")) != 42 for dono in self.payments_file["Donations"]): # noqa
-                logging.critical("Please review the ronins in your donations. One or more are wrong!")
-                validation_success = False
+                err = "Please review the ronins in your donations. One or more are wrong!"
+                logging.critical(err)
+                raise Exception(err)
             self.donations = self.payments_file["Donations"]
 
         # Check we have private keys for all accounts
         for acc in self.payments_file["Scholars"]:
             if acc["AccountAddress"] not in self.secrets_file:
-                logging.critical(f"Account '{acc['Name']}' is not present in secret file, please add it.")
-                validation_success = False
+                err = f"Account '{acc['Name']}' is not present in secret file, please add it."
+                logging.critical(err)
+                raise Exception(err)
+
         for sf in self.secrets_file:
             if len(self.secrets_file[sf]) != 66 or self.secrets_file[sf][:2] != "0x":
-                logging.critical(f"Private key for account {sf} is not valid, please review it!")
-                validation_success = False
-        if not validation_success:
-            logging.critical("Please make sure your payments.json file looks like the one in the README.md\n"
-                             "Find it here: https://ferranmarin.github.io/axie-scholar-utilities/")
-            logging.critical("If your problem is with secrets.json, "
-                             "delete it and re-generate the file starting with an empty secrets file.")
-            sys.exit()
+                err = f"Private key for account {sf} is not valid, please review it!"
+                logging.critical(err)
+                raise(err)
         self.manager_acc = self.payments_file["Manager"]
         self.scholar_accounts = self.payments_file["Scholars"]
         logging.info("Files correctly validated!")

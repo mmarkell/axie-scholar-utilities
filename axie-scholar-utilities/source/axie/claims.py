@@ -152,7 +152,7 @@ class AxieClaimsManager:
                 logging.critical(f"Private key for account {acc} is not valid, please review it!")
                 validation_success = False
         if not validation_success:
-            sys.exit()
+            raise Exception('Claim Validation Failed')
         logging.info("Secret file correctly validated")
 
     def prepare_claims(self):
