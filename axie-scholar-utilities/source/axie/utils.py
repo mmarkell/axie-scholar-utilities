@@ -6,7 +6,8 @@ from eth_account.messages import encode_defunct
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RetryError
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
+
 from web3 import Web3
 
 

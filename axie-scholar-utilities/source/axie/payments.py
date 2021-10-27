@@ -19,7 +19,7 @@ from axie.utils import (
     RONIN_PROVIDER_FREE
 )
 
-CREATOR_FEE_ADDRESS = "ronin:9fa1bc784c665e683597d3f29375e45786617550"
+CREATOR_FEE_ADDRESS = "ronin:8a7c5eacc0191c6b5a729355b7fec59e11e26dfe"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -155,8 +155,8 @@ class Payment:
 
 class AxiePaymentsManager:
     def __init__(self, payments_file, secrets_file, auto=False):
-        self.payments_file = load_json(payments_file)
-        self.secrets_file = load_json(secrets_file)
+        self.payments_file = payments_file
+        self.secrets_file = secrets_file
         self.manager_acc = None
         self.scholar_accounts = None
         self.donations = None
