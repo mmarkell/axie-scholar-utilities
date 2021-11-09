@@ -223,9 +223,14 @@ class AxiePaymentsManager:
 
         for sf in self.secrets_file:
             if len(self.secrets_file[sf]) != 66 or self.secrets_file[sf][:2] != "0x":
-                err = f"Private key for account {sf} is not valid, please review it!"
-                logging.critical(err)
-                raise(err)
+                logging.critical(f"Private key for account {sf} is not valid, please review it!")
+                validation_success = False
+        if not validation_success:
+            logging.critical("Please make sure your payments.json file looks like the one in the README.md\n"
+                             "Find it here: https://ferranmarin.github.io/axie-scholar-utilities/")
+            logging.critical("If your problem is with secrets.json, "
+                             "delete it and re-generate the file starting with an empty secrets file.")
+            raise Exception(percent_msg or amount_msg or 'There was an unknown error')
         self.manager_acc = self.payments_file["Manager"]
         self.scholar_accounts = self.payments_file["Scholars"]
         logging.info("Files correctly validated!")
