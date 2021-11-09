@@ -1,34 +1,21 @@
-import sys
 import json
 import logging
-from time import sleep
+import sys
 from datetime import datetime, timedelta
+from time import sleep
 
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from web3 import Web3, exceptions
 
+from axie.payments import CREATOR_FEE_ADDRESS, Payment, PaymentsSummary
 from axie.schemas import breeding_schema
-from axie.utils import (
-    get_nonce,
-    load_json,
-    RONIN_PROVIDER_FREE,
-    AXIE_CONTRACT,
-    check_balance,
-    TIMEOUT_MINS,
-    ImportantLogsFilter
-)
-from axie.payments import Payment, PaymentsSummary, CREATOR_FEE_ADDRESS
+from axie.utils import (AXIE_CONTRACT, RONIN_PROVIDER_FREE, TIMEOUT_MINS,
+                        ImportantLogsFilter, check_balance, get_nonce,
+                        load_json)
 
-
-now = int(datetime.now().timestamp())
-log_file = f'logs/breeding_results_{now}.log'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
-file_handler.setLevel(logging.INFO)
-file_handler.addFilter(ImportantLogsFilter())
-logger.addHandler(file_handler)
 
 
 class Breed:

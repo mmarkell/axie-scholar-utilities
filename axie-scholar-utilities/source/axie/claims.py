@@ -1,4 +1,4 @@
-import sys
+import io
 import asyncio
 import json
 import logging
@@ -12,23 +12,18 @@ import requests
 from axie.utils import (
     check_balance,
     get_nonce,
-    load_json,
-    ImportantLogsFilter,
     SLP_CONTRACT,
     RONIN_PROVIDER_FREE,
     AxieGraphQL
 )
 
-
-now = int(datetime.now().timestamp())
-log_file = f'logs/claim_results_{now}.log'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(log_file, mode='w')
-file_handler.setLevel(logging.INFO)
-file_handler.addFilter(ImportantLogsFilter())
-logger.addHandler(file_handler)
-
+errors = io.StringIO()
+formatter = logging.Formatter('%(message)s\n')
+eh = logging.StreamHandler(errors)
+eh.setFormatter(formatter)
+logger.addHandler(eh)
 
 class Claim(AxieGraphQL):
     def __init__(self, acc_name, **kwargs):
@@ -123,7 +118,7 @@ class Claim(AxieGraphQL):
             logging.info(f"Important: SLP Claimed! New balance for account {self.acc_name} "
                          f"({self.account.replace('0x', 'ronin:')}) is: {check_balance(self.account)}")
         else:
-            logging.info(f"Important: Claim for account {self.acc_name} ({self.account.replace('0x', 'ronin:')}) "
+            raise Exception(f"Important: Claim for account {self.acc_name} ({self.account.replace('0x', 'ronin:')}) "
                          "failed")
 
 
@@ -131,9 +126,7 @@ class AxieClaimsManager:
     def __init__(self, payments_file, secrets_file):
         self.secrets_file, self.acc_names = self.load_secrets_and_acc_name(secrets_file, payments_file)
 
-    def load_secrets_and_acc_name(self, secrets_file, payments_file):
-        secrets = load_json(secrets_file)
-        payments = load_json(payments_file)
+    def load_secrets_and_acc_name(self, secrets, payments):
         refined_secrets = {}
         acc_names = {}
         for scholar in payments['Scholars']:
@@ -157,7 +150,8 @@ class AxieClaimsManager:
                 logging.critical(f"Private key for account {acc} is not valid, please review it!")
                 validation_success = False
         if not validation_success:
-            sys.exit()
+            contents=errors.getvalue()
+            raise Exception(contents)
         logging.info("Secret file correctly validated")
 
     def prepare_claims(self):

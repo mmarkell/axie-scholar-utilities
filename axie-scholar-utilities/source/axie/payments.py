@@ -1,6 +1,7 @@
-import sys
+import io
 import json
 import logging
+import sys
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -8,30 +9,19 @@ from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from web3 import Web3, exceptions
 
-from axie.schemas import payments_schema, payments_percent_schema
-from axie.utils import (
-    check_balance,
-    get_nonce,
-    load_json,
-    Singleton,
-    ImportantLogsFilter,
-    SLP_CONTRACT,
-    RONIN_PROVIDER_FREE,
-    TIMEOUT_MINS
-)
+from axie.schemas import payments_percent_schema, payments_schema
+from axie.utils import (RONIN_PROVIDER_FREE, SLP_CONTRACT, TIMEOUT_MINS,
+                        Singleton, check_balance, get_nonce)
 
+CREATOR_FEE_ADDRESS = "ronin:8a7c5eacc0191c6b5a729355b7fec59e11e26dfe"
 
-CREATOR_FEE_ADDRESS = "ronin:9fa1bc784c665e683597d3f29375e45786617550"
-
-now = int(datetime.now().timestamp())
-log_file = f'logs/payment_results_{now}.log'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
-file_handler.setLevel(logging.INFO)
-file_handler.addFilter(ImportantLogsFilter())
-logger.addHandler(file_handler)
-
+errors = io.StringIO()
+formatter = logging.Formatter('%(message)s\n')
+eh = logging.StreamHandler(errors)
+eh.setFormatter(formatter)
+logger.addHandler(eh)
 
 class Payment:
     def __init__(self, name, payment_type, from_acc, from_private, to_acc, amount, summary):
@@ -160,8 +150,8 @@ class Payment:
 
 class AxiePaymentsManager:
     def __init__(self, payments_file, secrets_file, auto=False):
-        self.payments_file = load_json(payments_file)
-        self.secrets_file = load_json(secrets_file)
+        self.payments_file = payments_file
+        self.secrets_file = secrets_file
         self.manager_acc = None
         self.scholar_accounts = None
         self.donations = None
@@ -237,7 +227,8 @@ class AxiePaymentsManager:
                              "Find it here: https://ferranmarin.github.io/axie-scholar-utilities/")
             logging.critical("If your problem is with secrets.json, "
                              "delete it and re-generate the file starting with an empty secrets file.")
-            sys.exit()
+            contents=errors.getvalue()
+            raise Exception(contents)
         self.manager_acc = self.payments_file["Manager"]
         self.scholar_accounts = self.payments_file["Scholars"]
         logging.info("Files correctly validated!")
@@ -260,6 +251,8 @@ class AxiePaymentsManager:
             self.prepare_payout_percent()
         else:
             logging.critical(f"Unexpected error! Unrecognized payments mode {self.type}")
+            contents=errors.getvalue()
+            raise Exception(contents)
 
     def prepare_payout_amount(self):
         for acc in self.scholar_accounts:
